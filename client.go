@@ -27,14 +27,14 @@ var ErrBadHandshake = errors.New("websocket: bad handshake")
 // If the WebSocket handshake fails, ErrBadHandshake is returned along with a
 // non-nil *http.Response so that callers can handle redirects, authentication,
 // etc.
-func NewClient(netConn net.Conn, u *url.URL, requestHeader http.Header, readBufSize, writeBufSize int) (c *Conn, response *http.Response, err error) {
+func NewClient(netConn net.Conn, u *url.URL, requestHeader http.Header, readBufSize, writeBufSize int, isMask bool) (c *Conn, response *http.Response, err error) {
 	challengeKey, err := generateChallengeKey()
 	if err != nil {
 		return nil, nil, err
 	}
 	acceptKey := computeAcceptKey(challengeKey)
 
-	c = newConn(netConn, false, readBufSize, writeBufSize)
+	c = newConn(netConn, isMask, readBufSize, writeBufSize)
 	p := c.writeBuf[:0]
 	p = append(p, "GET "...)
 	p = append(p, u.RequestURI()...)
@@ -156,7 +156,7 @@ var DefaultDialer *Dialer
 // If the WebSocket handshake fails, ErrBadHandshake is returned along with a
 // non-nil *http.Response so that callers can handle redirects, authentication,
 // etc.
-func (d *Dialer) Dial(urlStr string, requestHeader http.Header) (*Conn, *http.Response, error) {
+func (d *Dialer) Dial(urlStr string, requestHeader http.Header, isMask bool) (*Conn, *http.Response, error) {
 	u, err := parseURL(urlStr)
 	if err != nil {
 		return nil, nil, err
@@ -234,7 +234,7 @@ func (d *Dialer) Dial(urlStr string, requestHeader http.Header) (*Conn, *http.Re
 		requestHeader = h
 	}
 
-	conn, resp, err := NewClient(netConn, u, requestHeader, readBufferSize, writeBufferSize)
+	conn, resp, err := NewClient(netConn, u, requestHeader, readBufferSize, writeBufferSize, isMask)
 	if err != nil {
 		return nil, resp, err
 	}

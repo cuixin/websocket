@@ -97,7 +97,7 @@ func (u *Upgrader) selectSubprotocol(r *http.Request, responseHeader http.Header
 // The responseHeader is included in the response to the client's upgrade
 // request. Use the responseHeader to specify cookies (Set-Cookie) and the
 // application negotiated subprotocol (Sec-Websocket-Protocol).
-func (u *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header) (*Conn, error) {
+func (u *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header, isMask bool) (*Conn, error) {
 	if values := r.Header["Sec-Websocket-Version"]; len(values) == 0 || values[0] != "13" {
 		return u.returnError(w, r, http.StatusBadRequest, "websocket: version != 13")
 	}
@@ -152,7 +152,7 @@ func (u *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request, responseHeade
 	if writeBufSize == 0 {
 		writeBufSize = defaultWriteBufferSize
 	}
-	c := newConn(netConn, true, readBufSize, writeBufSize)
+	c := newConn(netConn, isMask, readBufSize, writeBufSize)
 	c.subprotocol = subprotocol
 
 	p := c.writeBuf[:0]
@@ -227,7 +227,7 @@ func (u *Upgrader) Upgrade(w http.ResponseWriter, r *http.Request, responseHeade
 // If the request is not a valid WebSocket handshake, then Upgrade returns an
 // error of type HandshakeError. Applications should handle this error by
 // replying to the client with an HTTP error response.
-func Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header, readBufSize, writeBufSize int) (*Conn, error) {
+func Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header, readBufSize, writeBufSize int, isMask bool) (*Conn, error) {
 	u := Upgrader{ReadBufferSize: readBufSize, WriteBufferSize: writeBufSize}
 	u.Error = func(w http.ResponseWriter, r *http.Request, status int, reason error) {
 		// don't return errors to maintain backwards compatibility
@@ -236,7 +236,7 @@ func Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header,
 		// allow all connections by default
 		return true
 	}
-	return u.Upgrade(w, r, responseHeader)
+	return u.Upgrade(w, r, responseHeader, isMask)
 }
 
 // Subprotocols returns the subprotocols requested by the client in the
